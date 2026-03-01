@@ -1,7 +1,0 @@
-##fileformat=VCFv4.2
-##source=Assignment2_SimulatedWGS
-##INFO=<ID=CLNSIG,Number=1,Type=String,Description="Clinical significance from ClinVar">
-#CHROM  POS       ID        REF  ALT  QUAL  FILTER  INFO
-19      12345678  986927    C    T    .    .    CLNSIG=Pathogenic
-6       29610238  2502369   G    A    .    .    CLNSIG=Likely_pathogenic
-15      23565674  3779852   A    T    .    .    CLNSIG=Likely_pathogenic

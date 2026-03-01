@@ -1,0 +1,22 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##source=Assignment1_ClinVar_GRCh38
+##reference=GRCh38
+##INFO=<ID=CLNSIG,Number=1,Type=String,Description="Clinical significance">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=END,Number=1,Type=Integer,Description="End position of the variant">
+##contig=<ID=19>
+##contig=<ID=6>
+##contig=<ID=15>
+##contig=<ID=7>
+##contig=<ID=4>
+##contig=<ID=5>
+##bcftools_annotateVersion=1.19+htslib-1.19
+##bcftools_annotateCommand=annotate -a clinvar.vcf.gz -c ID -o test_id_match.vcf Assignment1_GRCh38.vcf.gz; Date=Sun Mar  1 23:33:38 2026
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+19	10812270	986927	C	T	.	.	CLNSIG=Pathogenic
+6	29622127	2502369	G	C	.	.	CLNSIG=Likely_pathogenic
+15	23565919	3779852	C	A	.	.	CLNSIG=Likely_pathogenic
+7	117480102	2006304	N	<DEL>	.	.	CLNSIG=Pathogenic;SVTYPE=DEL;END=117480500
+4	3074876	1687507	N	<DUP>	.	.	CLNSIG=Likely_pathogenic;SVTYPE=DUP;END=3076000
+5	151253220	1324484	N	<INS>	.	.	CLNSIG=Likely_pathogenic;SVTYPE=INS;END=151253221
