@@ -1,3 +1,4 @@
+
 # 🧬 ClinVar Variant Analysis
 
 > Comprehensive curation of clinically significant genetic variants and generation of a standardized **GRCh38 VCF dataset**.
@@ -35,8 +36,6 @@ The workflow simulates a targeted extraction of disease-associated variants from
 | 📍 Genomic Coordinates | Extracted GRCh38 positions |
 | 🗂️ VCF File | Finalized, properly formatted VCF |
 | 📄 Documentation | Full methodology documentation |
-
-> ⚠️ **Note:** ClinVar annotation procedures are intentionally excluded. This README covers the process only up to VCF generation.
 
 ---
 
@@ -101,6 +100,10 @@ Structural or complex variants were encoded using **symbolic ALT alleles** where
 
 ## 🏗️ VCF Construction
 
+This section describes the final step of the assignment: reconstruction of a valid VCF file using ClinVar Variation IDs and annotation using the ClinVar GRCh38 database.
+
+The objective was to simulate a realistic WGS/WES patient variant file and annotate it programmatically using standard bioinformatics tools.
+
 The **Variant Call Format (VCF) v4.2** specification was used as the standard output format.
 
 | Column | Field | Description |
@@ -130,18 +133,206 @@ The following header structure was implemented to ensure compatibility with down
 #CHROM  POS  ID  REF  ALT  QUAL  FILTER  INFO
 ```
 
-Each variant entry follows strict **tab-delimited** formatting.
+Each variant entry followed strict **tab-delimited** formatting.
+
+---
+## 1️⃣ Initial Issue: Annotation Failure
+
+Although the initial VCF file was constructed manually, annotation using `bcftools` did not enrich the file.
+The variants did **not exactly match** ClinVar, possibly because:
+* Genomic coordinates were manually copied from different ClinVar web fields
+* Variation IDs were confused with genomic positions
+* Chromosome numbers and positions were mismatched
+* Even a 1-base difference prevents annotation matching
+
+Annotation toolslike bcftools match strictly on:
+* `CHROM`
+* `POS`
+* `REF`
+* `ALT`
+
+If any of these differ, annotation fails silently.
+
+---
+## 2️⃣ Rebuilding the VCF File Using ClinVar IDs
+### Step A - ClinVar ID List
+
+A file containing ClinVar Variation IDs was created:
+
+```
+vcf_files/vcf_building/clinvar_ids.txt
+```
+
+Example:
+
+```
+986927
+2502369
+3779852
+2006304
+1687507
+1324484
+```
 
 ---
 
-## 🧩 Variant Types Represented
+### Step B - Automated Extraction Script
 
-The curated dataset includes multiple variant classes, reflecting real-world heterogeneity observed in clinically relevant genetic variation:
+Script:
 
-- Single nucleotide variants (SNVs) — missense and nonsense mutations
-- Single-base deletions — frameshift variants
-- Microsatellite expansions
-- Structural variations — represented using symbolic alleles
+```
+vcf_files/vcf_building/rebuild_vcf.sh
+```
+
+This script:
+
+* Queries `clinvar.vcf.gz`
+* Extracts matching variants by ID
+* Outputs properly tab-separated VCF lines
+* Leaves INFO field as `.` (simulating raw patient data)
+
+### Step C - Adding contig definitions
+The VCF lacked required `##contig` definitions, so contig lines were dynamically generated based on chromosomes present:
+
+```
+##contig=<ID=4>
+##contig=<ID=5>
+##contig=<ID=6>
+##contig=<ID=7>
+##contig=<ID=15>
+##contig=<ID=19>
+```
+
+This produced:
+
+```
+Assignment1_clean_with_contigs.vcf
+```
+
+---
+
+## 4️⃣ Sorting, Compressing, and Indexing
+Proper genomic indexing require sorted file, bgzip compression and tabix indexing
+Commands used:
+
+```bash
+bcftools sort Assignment1_clean_with_contigs.vcf -o Assignment1_clean_sorted.vcf
+bgzip Assignment1_clean_sorted.vcf
+tabix -p vcf Assignment1_clean_sorted.vcf.gz
+```
+
+Output:
+
+```
+Assignment1_clean_sorted.vcf.gz
+Assignment1_clean_sorted.vcf.gz.tbi
+```
+
+---
+
+## 5️⃣ ClinVar Annotation Using bcftools
+
+`bcftools annotate` was used for this step.
+
+Command:
+
+```bash
+bcftools annotate \
+  -a clinvar.vcf.gz \
+  -c INFO/CLNSIG,INFO/CLNDN,INFO/CLNREVSTAT \
+  Assignment1_clean_sorted.vcf.gz \
+ -o final_annotated.vcf
+```
+
+---
+
+## 6️⃣ Final Annotated Output
+
+The final annotated VCF:
+
+```
+vcf_files/final_annotated.vcf
+```
+
+Each variant now includes:
+
+* `CLNSIG` — Clinical significance
+* `CLNDN` — Disease name
+* `CLNREVSTAT` — Review status
+
+Example INFO field:
+```
+CLNSIG=Likely_pathogenic;
+CLNDN=Tay-Sachs_disease;
+CLNREVSTAT=criteria_provided,_single_submitter
+```
+
+This confirms successful ClinVar database matching.
+
+# 📂 Repository Structure Overview
+
+```
+ClinVar-Variant-Analysis/
+│
+├── README.md
+├── assign1.xlsx
+│
+├── ucsc_genome_browser_ss/
+│   ├── cysticfib1ucsc.png
+│   ├── huntington'sucsc.png
+│   ├── ucsctaysachs.png
+│   └── ...
+│
+├── variant_info_ss/
+│   ├── dbsnpsignificaceanddetailsd2.png
+│   └── variationviewerofd2.png
+│
+└── vcf_files/
+    ├── Assignment1_clean_sorted.vcf.gz
+    ├── Assignment1_clean_sorted.vcf.gz.tbi
+    ├── Assignment1_clean_with_contigs.vcf
+    ├── final_annotated.vcf
+    │
+    └── vcf_building/
+        ├── clinvar_ids.txt
+        ├── rebuild_vcf.sh
+        ├── test_id_match.vcf
+```
+
+---
+
+## 📁 Folder Explanations
+
+### `ucsc_genome_browser_ss/`
+
+Screenshots showing:
+
+* Variant genomic context
+* AlphaMissense predictions
+* RAVEL scores
+* Track visualization
+
+### `variant_info_ss/`
+
+Screenshots of:
+
+* dbSNP details
+* ClinVar Variation Viewer
+
+### `vcf_files/`
+
+Contains all VCF processing outputs:
+
+| File                                  | Purpose                              |
+| ------------------------------------- | ------------------------------------ |
+| `Assignment1_clean_with_contigs.vcf`  | Corrected VCF with contig headers    |
+| `Assignment1_clean_sorted.vcf.gz`     | Sorted and compressed VCF            |
+| `Assignment1_clean_sorted.vcf.gz.tbi` | Tabix index                          |
+| `final_annotated.vcf`                 | Fully annotated ClinVar-enriched VCF |
+
+### `vcf_files/vcf_building/`
+
+Contains scripts and intermediate debugging files used during reconstruction.
 
 ---
 
@@ -156,24 +347,6 @@ The curated dataset includes multiple variant classes, reflecting real-world het
 6. VCF Formatting        →  Programmatic conversion to VCF v4.2
 7. Validation            →  Structural integrity and format compliance verified
 ```
-
----
-
-## 📁 Repository Structure
-
-```
-ClinVar-Variant-Analysis/
-│
-├── assign1.xlsx
-│   └── Raw curated dataset including disease metadata and variant details
-│
-├── Assignment1_GRCh38_final.vcf
-│   └── Final standardized VCF file (GRCh38-based)
-│
-└── README.md
-    └── Project documentation and methodology
-```
-
 ---
 
 ## 🎓 Academic Context
